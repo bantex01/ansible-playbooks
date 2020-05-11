@@ -3,19 +3,25 @@
   gather_facts: False
   vars:
     pem_path: ../../.ssh/ansible.pem
-    lab_id: host1-0004
+    lab_id: host1-0006
     image: ami-0323c3dd2da7fb37d
-    instance_type: t2.micro
+    instance_type: t2.medium
+    volumes:
+    - device_name: /dev/xvda
+      volume_size: 20
     ssh_user: ec2-user
     count: 1
     aws_tags:
       Name: lab-host1
+    splunk_app_array:
+      - Splunk-EuropeanFootballAnalysis
   vars_files:
   - aws_keys.yml
 
   roles:
     - create_lab_network
     - create_ec2_instance
+    - { role: prepare_splunk_app_for_install, app: "{{ splunk_app_array }}" }
 
   tasks:
     - name: "Ansible | Print a variable"
@@ -41,6 +47,37 @@
   remote_user: ec2-user
   become: yes
   gather_facts: no
+  vars:
+    splunk_app_array:
+      - Splunk-EuropeanFootballAnalysis
 
   roles:
-    - install_splunk
+  - install_splunk
+
+  tasks:
+
+  - name: Copy tar ball to host
+    copy:
+      src: "/ansible/{{ item }}.tar.gz"
+      dest: /tmp
+      owner: splunk
+      group: splunk
+      mode: '0775'
+    with_items:
+      "{{ splunk_app_array }}"
+
+  - name: Unzip splunk app to "{{ splunk_path }}/splunk/etc/apps"
+    unarchive:
+      src: /tmp/{{ item }}.tar.gz
+      dest: "{{ splunk_path }}/splunk/etc/apps"
+      remote_src: yes
+      owner: "{{ splunk_run_as_user }}"
+      group: "{{ splunk_run_as_user_group }}"
+      mode: "0755"
+    with_items:
+      "{{ splunk_app_array }}"
+
+  - name: Restart splunk for app install
+    systemd:
+      name: Splunkd
+      state: restarted
