@@ -53,6 +53,7 @@
 
   roles:
   - install_splunk
+  - install_collectd
 
   tasks:
 
