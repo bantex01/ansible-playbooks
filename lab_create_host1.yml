@@ -16,7 +16,7 @@
     splunk_app_array:
       - Splunk-EuropeanFootballAnalysis
   vars_files:
-  - /root/ansible/playbooks/aws_keys.yml
+  - /root/ansible/playbooks/ansible_vars.yml
 
   roles:
     - create_lab_network
